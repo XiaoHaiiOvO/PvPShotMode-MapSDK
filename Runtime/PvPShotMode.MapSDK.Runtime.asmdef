@@ -1,0 +1,14 @@
+{
+    "name": "PvPShotMode.MapSDK.Runtime",
+    "rootNamespace": "PvPShotMode.MapSDK",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

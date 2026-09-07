@@ -14,9 +14,9 @@ namespace PvPShotMode.MapSDK.Editor
             mapId = EditorGUILayout.TextField("地图 ID", mapId);
             displayName = EditorGUILayout.TextField("显示名称", displayName);
             demolition = EditorGUILayout.Toggle("爆破", demolition);
-            teams = EditorGUILayout.Toggle("团队竞技（全灭）", teams);
+            teams = EditorGUILayout.Toggle("团队竞技", teams);
             ffa = EditorGUILayout.Toggle("个人死斗", ffa);
-            EditorGUILayout.HelpBox("模板只提供 Gameplay 标记和空气墙碰撞体。请添加可行走地面、场景模型，并调整出生点与包点。蓝球=CT，红球=T，紫球=FFA，黄框=包点，青框=准备期空气墙，绿球=武器墙。箭头表示朝向。", MessageType.Info);
+            EditorGUILayout.HelpBox("模板只提供 Gameplay 标记和空气墙碰撞体。请添加可行走地面、场景模型，并调整出生点与包点。蓝球=CT，红球=T，紫球=FFA，黄框=包点，青框=准备期空气墙，绿/青色槽位阵列=武器墙。武器墙本地 +Z 为展示正面，直接调整标记位置和旋转。", MessageType.Info);
             using (new EditorGUI.DisabledScope(!demolition && !teams && !ffa))
             if (GUILayout.Button("一键生成并保存模板"))
             {
@@ -52,8 +52,12 @@ namespace PvPShotMode.MapSDK.Editor
                         wall.GetComponent<BoxCollider>().size = new Vector3(.3f, 4, 12);
                     }
                     var shop = Node(game, info.weaponShopRoot, Vector3.zero);
-                    Node(shop, info.weaponShopTeamAChild, new Vector3(-11, 0, 4)).gameObject.AddComponent<WeaponShopMarker>();
-                    Node(shop, info.weaponShopTeamBChild, new Vector3(11, 0, 4)).gameObject.AddComponent<WeaponShopMarker>();
+                    foreach (var entry in new[] { (info.weaponShopTeamAChild, -11f), (info.weaponShopTeamBChild, 11f) })
+                    {
+                        var anchor = Node(shop, entry.Item1, new Vector3(entry.Item2, 1.65f, 4));
+                        anchor.localRotation = Quaternion.Euler(0, 180, 0);
+                        anchor.gameObject.AddComponent<WeaponShopMarker>();
+                    }
                 }
                 if (info.SupportsMode(GameModeIds.FreeForAll)) Spawns(game, info.freeForAllSpawnRoot, SpawnPointMarker.SpawnTeam.FFA, 0);
                 if (info.SupportsMode(GameModeIds.Demolition))

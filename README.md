@@ -1,6 +1,6 @@
 # PvPShotMode Map SDK
 
-《How to Fish》PvPShotMode 的 Unity 地图制作工具，版本 **2.1.0**。
+《How to Fish》PvPShotMode 的 Unity 地图制作工具，版本 **2.2.1**。
 
 本仓库只包含地图数据规范、编辑器模板、Gizmos 和导出工具，按 MIT 协议开源。玩法 DLL、游戏源码、模型、音效和第三方资源不在本仓库中。
 
@@ -13,13 +13,13 @@
 3. 输入：
 
 ```text
-https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.1.0
+https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.2.1
 ```
 
 也可以在工程的 `Packages/manifest.json` 中添加：
 
 ```json
-"com.htf.pvpshotmode-mapsdk": "https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.1.0"
+"com.htf.pvpshotmode-mapsdk": "https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.2.1"
 ```
 
 本机需要安装 Git；制作地图不需要 GitHub 账号，也不需要导入玩法 DLL。
@@ -37,7 +37,7 @@ https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.1.0
 
 ## 编辑器标记图例
 
-Scene 视图请开启 Gizmos。标记使用半透明颜色，球上方有名称，箭头表示朝向。
+Scene 视图请开启 Gizmos。出生点使用半透明球体，武器墙使用真实槽位尺寸的方框阵列，箭头表示朝向。
 
 | 标记 | 含义 | 游戏中的行为 |
 | --- | --- | --- |
@@ -46,16 +46,36 @@ Scene 视图请开启 Gizmos。标记使用半透明颜色，球上方有名称�
 | 紫球 | 个人死斗出生点 | 开局分配；死亡后优先选择远离其他存活玩家的位置 |
 | 黄色半透明方框 | 爆破包点 | 保留触发碰撞体，区域内可安放 C4 |
 | 青色半透明方框 | 准备期空气墙 | 保留实体 BoxCollider，准备结束后关闭 |
-| 绿球 | 武器墙锚点 | 团队模式的武器与配件商店位置 |
+| 绿色/青色槽位阵列 | 武器墙锚点 | 绿色武器/投掷物板、青色配件板；本地 +Z 为展示正面 |
 
 这些标记只使用编辑器 Gizmos，没有运行时渲染器。导出克隆会移除标记脚本，保留节点与必要碰撞体；原始 Prefab 的标记仍然可编辑。
+
+## 武器墙：按预览摆放，不再自动朝向出生点
+
+需要配合 **PvPShotMode 2.2.1 或更新兼容版本的 DLL**。只更新 SDK、继续使用旧 DLL，不会改变游戏中的朝向算法。
+
+1. 打开地图 Prefab，选择 `GamePlay/武器墙位置/警` 或 `匪`（自定义名称以地图定义为准）。旧节点没有脚本时，添加 `WeaponShopMarker` 组件；不需要球体、Mesh 或 Collider。
+2. 开启 Scene 的 **Gizmos**，将移动/旋转工具切到 **Local**。蓝色 **+Z 箭头指向玩家应站的一侧**，绿色 **+Y 是上方**，红色 **+X 是排布方向**。
+3. 移动、旋转该节点，使槽位放在墙前。标记原点就是布局原点，不是地面落点，也不是 Collider 中心；建议初始高度距地面约 1.65 米。新模板已使用该高度，并设置固定的 Y=180° 示例方向。
+4. 保持标记及 Gameplay 上级层级的 Scale 为 `(1,1,1)`；改变 Scale 不会放大布局。非均匀缩放叠加旋转可能让运行时展示板变形，Inspector 会提示。
+5. 绿色槽位固定 10 个：第一行手枪/霰弹枪/冲锋枪/狙击枪/步枪，第二行指虎/小刀/手雷/烟雾弹/闪光弹。未安装或未解锁的物品可能不显示，预览为完整布局。
+6. 青色配件槽默认预览 7 个；`Preview Attachment Count` 仅影响编辑器显示，游戏按原版实际配件数量居中排列，不通过 SDK 创建配件。
+7. 保存 Prefab，再使用 SDK 导出 `.map`。房主和客户端都更新 DLL 与地图文件。
+
+**固定布局（单位：米）**：武器板 `0.72 × 0.46 × 0.14`，5 列 × 2 行，横向间距 1.05，纵向间距 0.75；配件板 `0.54 × 0.34 × 0.12`，间距 0.72。10 个武器槽和 7 个配件槽的购买板总包围框为 **4.92 × 1.90 × 0.14**；标题另在原点上方 1.47 米。边框精确对应购买板/碰撞体，不包含物品模型向前突出部分及可变长度文字，SDK 不包含原生武器模型。
+
+SDK 与玩法代码共用 [WeaponShopLayout.cs](Runtime/WeaponShopLayout.cs)。运行时读取导出节点的世界 Position/Rotation，再叠加固定的本地槽位偏移；忽略出生点、相机、Collider.center 和标记 Scale，不再推算正反面、自动向前挪动或让文字追踪相机。自定义旋转（包括俯仰）会被保留。
+
+**旧地图迁移注意**：不会自动转换以前依赖“面向出生点”摆放的节点。旧 `.map` 可以加载，但必须在新预览里检查摆放并重新导出，不能假定旧节点的旋转正确。
+
+如果 SDK 已嵌入工程的 `Packages/com.htf.pvpshotmode-mapsdk`，直接使用该本地包，无需重复导入 Git 包。以后切换回 Git 版本前先备份本地 SDK 修改并通过 Package Manager 移除本地包；不要同时保留两套相同脚本或直接修改 `Library/PackageCache`。
 
 ## 模式规则
 
 | ID | 规则 | 必需标记 |
 | --- | --- | --- |
 | `demolition` | 安放 / 拆除 C4；全灭与未安放超时按爆破规则判定；先到房主设定分数获胜 | CT/T 出生点、空气墙组、两侧武器墙、至少一个包点 |
-| `team_deathmatch` | 消灭对方所有玩家赢得回合；超时或双方同时全灭为平局；先到房主设定分数获胜 | CT/T 出生点、空气墙组、两侧武器墙 |
+| `team_deathmatch` | 单局按房主设置的时间或团队击杀目标决胜；限时平分进入双方随机一人单挑；死亡后按配置重生 | CT/T 出生点、空气墙组、两侧武器墙 |
 | `free_for_all` | 每人互为敌人；击杀数先达到目标获胜；死亡后自动重生 | FFA 出生点 |
 
 个人死斗参数：`targetKills` 默认 30，`respawnSeconds` 默认 3，`spawnProtectionSeconds` 默认 2，`freeForAllWeaponId` 默认 66。保护期间不能造成或受到玩家伤害。武器 ID 必须是当前游戏可生成的枪械。

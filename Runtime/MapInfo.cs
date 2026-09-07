@@ -1,60 +1,69 @@
 using System;
 using UnityEngine;
 
-namespace PvPShotMode.MapSDK
+namespace HowToFish.PvPShotMode.Map
 {
-    /// <summary>
-    /// 地图元信息数据类 — 序列化为 JSON，打包到 .map AssetBundle 中名为 "MapInfo" 的 TextAsset。
-    /// 与 PvPShotMode.dll 运行时的 MapInfo 结构保持一致。
-    /// </summary>
     [Serializable]
-    public class MapInfo
+    public sealed class MapInfo
     {
-        [Tooltip("地图唯一标识 (英文小写+下划线，如 dust2)")]
+        public int schemaVersion = 1;
         public string mapId = "my_map";
-
-        [Tooltip("地图显示名称")]
-        public string displayName = "My Custom Map";
-
-        [Tooltip("作者名")]
-        public string author = "Unknown";
-
-        [Tooltip("版本号 (如 1.0.0)")]
+        public string displayName = "我的地图";
+        public string author = "";
         public string version = "1.0.0";
-
-        [Tooltip("地图简介")]
-        [TextArea(2, 5)]
-        public string description = "自定义 PvP 地图";
-
-        [Tooltip("支持的游戏模式 ID 列表\ndemolition = 爆破模式\nteam_deathmatch = 团队竞技\nfree_for_all = 个人死斗")]
-        public string[] supportedModes = { "demolition", "team_deathmatch" };
-
-        [Tooltip("预览图名称 (Bundle 内的 Sprite 资产名)")]
+        public string description = "";
+        public string[] supportedModes = { GameModeIds.Demolition, GameModeIds.TeamDeathmatch };
+        public string prefabAssetName = "MapPrefab";
         public string previewImageName = "";
-
-        [Header("节点名称约定")]
-        [Tooltip("CT(警)重生点父节点名")]
+        public string gameplayRoot = "GamePlay";
         public string teamASpawnRoot = "TeamCT_respawn_points";
-
-        [Tooltip("T(匪)重生点父节点名")]
         public string teamBSpawnRoot = "TeamT_respawn_points";
-
-        [Tooltip("FFA 重生点父节点名 (个人死斗模式)")]
         public string freeForAllSpawnRoot = "FFA_respawn_points";
-
-        [Tooltip("爆破包点名列表 (爆破模式必须，如 A, B)")]
+        public string bombsiteRoot = "包点";
         public string[] bombsiteNames = { "A", "B" };
-
-        [Tooltip("空气墙组父节点名")]
         public string barrierRoot = "回合开始空气墙组";
-
-        [Tooltip("武器购买墙父节点名")]
         public string weaponShopRoot = "武器墙位置";
-
-        [Tooltip("武器墙 CT 子节点名")]
         public string weaponShopTeamAChild = "警";
-
-        [Tooltip("武器墙 T 子节点名")]
         public string weaponShopTeamBChild = "匪";
+        public int targetKills = 30;
+        public float respawnSeconds = 3f;
+        public float spawnProtectionSeconds = 2f;
+        // Native weapon ID; 66 is a verified firearm in the supported game version.
+        public int freeForAllWeaponId = 66;
+
+        public bool SupportsMode(string id) => supportedModes != null &&
+            Array.Exists(supportedModes, x => string.Equals(x, id, StringComparison.OrdinalIgnoreCase));
+
+        public static MapInfo CreateFromJson(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) throw new ArgumentException("MapInfo JSON 为空");
+            var info = JsonUtility.FromJson<MapInfo>(json);
+            if (info == null) throw new ArgumentException("MapInfo JSON 无效");
+            info.NormalizeLegacyFields();
+            return info;
+        }
+
+        public void NormalizeLegacyFields()
+        {
+            if (schemaVersion == 0) schemaVersion = 1;
+            if (string.IsNullOrEmpty(gameplayRoot)) gameplayRoot = "GamePlay";
+            if (string.IsNullOrEmpty(bombsiteRoot)) bombsiteRoot = "包点";
+            if (string.IsNullOrEmpty(teamASpawnRoot)) teamASpawnRoot = "TeamCT_respawn_points";
+            if (string.IsNullOrEmpty(teamBSpawnRoot)) teamBSpawnRoot = "TeamT_respawn_points";
+            if (string.IsNullOrEmpty(freeForAllSpawnRoot)) freeForAllSpawnRoot = "FFA_respawn_points";
+            if (string.IsNullOrEmpty(barrierRoot)) barrierRoot = "回合开始空气墙组";
+            if (string.IsNullOrEmpty(weaponShopRoot)) weaponShopRoot = "武器墙位置";
+            if (string.IsNullOrEmpty(weaponShopTeamAChild)) weaponShopTeamAChild = "警";
+            if (string.IsNullOrEmpty(weaponShopTeamBChild)) weaponShopTeamBChild = "匪";
+            if (targetKills <= 0) targetKills = 30;
+            if (respawnSeconds <= 0) respawnSeconds = 3;
+            if (freeForAllWeaponId <= 0) freeForAllWeaponId = 66;
+        }
+
+        public static MapInfo CreateLegacyDefault(string name) => new MapInfo {
+            mapId = name, displayName = name, prefabAssetName = name,
+            description = "兼容旧地图：建议使用新版 SDK 补充元信息后重新导出。"
+        };
     }
+
 }

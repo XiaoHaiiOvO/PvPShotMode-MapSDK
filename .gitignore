@@ -1,0 +1,15 @@
+Library/
+Temp/
+Obj/
+Logs/
+UserSettings/
+Build/
+Builds/
+*.csproj
+*.sln
+*.dll
+*.pdb
+*.map
+*.zip
+*.unitypackage
+.DS_Store

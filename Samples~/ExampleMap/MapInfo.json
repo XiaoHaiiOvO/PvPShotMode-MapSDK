@@ -1,17 +1,25 @@
 {
+    "schemaVersion": 1,
     "mapId": "example_arena",
     "displayName": "示例竞技场",
     "author": "SDK Sample",
     "version": "1.0.0",
     "description": "PvP Shot Mode SDK 示例地图。包含最小化的 Gameplay 标记。",
     "supportedModes": ["demolition", "team_deathmatch", "free_for_all"],
+    "prefabAssetName": "MapPrefab",
+    "gameplayRoot": "GamePlay",
     "previewImageName": "",
     "teamASpawnRoot": "TeamCT_respawn_points",
     "teamBSpawnRoot": "TeamT_respawn_points",
     "freeForAllSpawnRoot": "FFA_respawn_points",
+    "bombsiteRoot": "包点",
     "bombsiteNames": ["A", "B"],
     "barrierRoot": "回合开始空气墙组",
     "weaponShopRoot": "武器墙位置",
     "weaponShopTeamAChild": "警",
-    "weaponShopTeamBChild": "匪"
+    "weaponShopTeamBChild": "匪",
+    "targetKills": 30,
+    "respawnSeconds": 3,
+    "spawnProtectionSeconds": 2,
+    "freeForAllWeaponId": 66
 }

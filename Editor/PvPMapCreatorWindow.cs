@@ -1,213 +1,91 @@
-#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
-
+using HowToFish.PvPShotMode.Map;
 namespace PvPShotMode.MapSDK.Editor
 {
-    /// <summary>
-    /// PvP 地图创建编辑器窗口。
-    /// 菜单: PvPShotMode → 创建新地图模版
-    /// </summary>
-    public class PvPMapCreatorWindow : EditorWindow
+    public sealed class PvPMapCreatorWindow : EditorWindow
     {
-        private string _mapId = "my_map";
-        private string _displayName = "My Custom Map";
-        private string _author = "MapMaker";
-        private string _description = "自定义 PvP 地图";
-        private bool _supportDemolition = true;
-        private bool _supportTDM = true;
-        private bool _supportFFA = false;
-        private int _ctSpawnCount = 5;
-        private int _tSpawnCount = 5;
-        private int _ffaSpawnCount = 8;
-
-        [MenuItem("PvPShotMode/创建新地图模版", false, 100)]
-        public static void ShowWindow()
-        {
-            var window = GetWindow<PvPMapCreatorWindow>("PvP 地图创建器");
-            window.minSize = new Vector2(400, 520);
-        }
-
+        private string mapId = "my_map", displayName = "我的地图";
+        private bool demolition = true, teams = true, ffa = true;
+        [MenuItem("PvPShotMode/新建地图模板")]
+        public static void Open() => GetWindow<PvPMapCreatorWindow>("新建 PvP 地图");
         private void OnGUI()
         {
-            GUILayout.Label("★ PvP Shot Mode 地图模版创建器 ★", EditorStyles.boldLabel);
-            EditorGUILayout.Space(8);
-
-            EditorGUILayout.LabelField("地图基本信息", EditorStyles.boldLabel);
-            _mapId = EditorGUILayout.TextField("地图 ID (英文)", _mapId);
-            _displayName = EditorGUILayout.TextField("显示名称", _displayName);
-            _author = EditorGUILayout.TextField("作者", _author);
-            _description = EditorGUILayout.TextField("简介", _description);
-
-            EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("支持的游戏模式", EditorStyles.boldLabel);
-            _supportDemolition = EditorGUILayout.Toggle("爆破模式 (demolition)", _supportDemolition);
-            _supportTDM = EditorGUILayout.Toggle("团队竞技 (team_deathmatch)", _supportTDM);
-            _supportFFA = EditorGUILayout.Toggle("个人死斗 (free_for_all)", _supportFFA);
-
-            EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("重生点数量", EditorStyles.boldLabel);
-            _ctSpawnCount = EditorGUILayout.IntSlider("CT 重生点", _ctSpawnCount, 1, 16);
-            _tSpawnCount = EditorGUILayout.IntSlider("T 重生点", _tSpawnCount, 1, 16);
-            if (_supportFFA)
-                _ffaSpawnCount = EditorGUILayout.IntSlider("FFA 重生点", _ffaSpawnCount, 2, 32);
-
-            EditorGUILayout.Space(12);
-
-            EditorGUILayout.HelpBox(
-                "点击下方按钮后，将在当前场景中自动创建完整的地图模版层级结构：\n" +
-                "• CT/T/FFA 重生点（带半透明彩色 Gizmo 球）\n" +
-                "• 空气墙组（白色半透明方块）\n" +
-                "• 武器购买墙锚点\n" +
-                "• 包点区域（黄色半透明球+BoxCollider）\n" +
-                "• MapInfo TextAsset（JSON 元信息）\n\n" +
-                "创建后您只需添加场景模型即可。",
-                MessageType.Info);
-
-            EditorGUILayout.Space(6);
-
-            GUI.backgroundColor = new Color(0.2f, 0.8f, 0.4f);
-            if (GUILayout.Button("★ 一键生成地图模版 ★", GUILayout.Height(40)))
+            mapId = EditorGUILayout.TextField("地图 ID", mapId);
+            displayName = EditorGUILayout.TextField("显示名称", displayName);
+            demolition = EditorGUILayout.Toggle("爆破", demolition);
+            teams = EditorGUILayout.Toggle("团队竞技（全灭）", teams);
+            ffa = EditorGUILayout.Toggle("个人死斗", ffa);
+            EditorGUILayout.HelpBox("模板只提供 Gameplay 标记和空气墙碰撞体。请添加可行走地面、场景模型，并调整出生点与包点。蓝球=CT，红球=T，紫球=FFA，黄框=包点，青框=准备期空气墙，绿球=武器墙。箭头表示朝向。", MessageType.Info);
+            using (new EditorGUI.DisabledScope(!demolition && !teams && !ffa))
+            if (GUILayout.Button("一键生成并保存模板"))
             {
-                CreateMapTemplate();
+                string folder = EditorUtility.SaveFolderPanel("选择 Assets 下的目录", Application.dataPath, "");
+                if (string.IsNullOrEmpty(folder)) return;
+                string path = FileUtil.GetProjectRelativePath(folder);
+                if (!(path == "Assets" || path.StartsWith("Assets/"))) { EditorUtility.DisplayDialog("错误", "请选择工程 Assets 内的目录", "确定"); return; }
+                var modes = new System.Collections.Generic.List<string>();
+                if (demolition) modes.Add(GameModeIds.Demolition);
+                if (teams) modes.Add(GameModeIds.TeamDeathmatch);
+                if (ffa) modes.Add(GameModeIds.FreeForAll);
+                var info = new MapInfo { mapId = mapId.Trim(), displayName = displayName, supportedModes = modes.ToArray() };
+                Selection.activeObject = CreateTemplate(path, info);
             }
-            GUI.backgroundColor = Color.white;
         }
-
-        private void CreateMapTemplate()
+        public static PvPMapDefinition CreateTemplate(string folder, MapInfo info)
         {
-            // 根节点
-            GameObject mapRoot = new GameObject($"MapRoot_{_mapId}");
-            Undo.RegisterCreatedObjectUndo(mapRoot, "Create PvP Map Template");
-
-            // GamePlay 节点
-            GameObject gameplay = CreateChild(mapRoot, "GamePlay");
-
-            // CT 重生点
-            GameObject ctSpawns = CreateChild(gameplay, "TeamCT_respawn_points");
-            for (int i = 0; i < _ctSpawnCount; i++)
+            if (string.IsNullOrWhiteSpace(info.mapId) || System.Text.RegularExpressions.Regex.IsMatch(info.mapId, "[^a-z0-9_-]"))
+                throw new System.ArgumentException("地图 ID 只允许小写英文、数字、下划线和连字符");
+            var root = new GameObject(info.mapId);
+            try
             {
-                GameObject spawn = CreateChild(ctSpawns, $"Spawn_CT_{(i + 1):D2}");
-                spawn.transform.localPosition = new Vector3(i * 2f, 0, 0);
-                var marker = spawn.AddComponent<SpawnPointMarker>();
-                SerializedObject so = new SerializedObject(marker);
-                so.FindProperty("team").enumValueIndex = 0; // CT
-                so.ApplyModifiedPropertiesWithoutUndo();
-            }
-
-            // T 重生点
-            GameObject tSpawns = CreateChild(gameplay, "TeamT_respawn_points");
-            for (int i = 0; i < _tSpawnCount; i++)
-            {
-                GameObject spawn = CreateChild(tSpawns, $"Spawn_T_{(i + 1):D2}");
-                spawn.transform.localPosition = new Vector3(i * 2f, 0, 20f);
-                var marker = spawn.AddComponent<SpawnPointMarker>();
-                SerializedObject so = new SerializedObject(marker);
-                so.FindProperty("team").enumValueIndex = 1; // T
-                so.ApplyModifiedPropertiesWithoutUndo();
-            }
-
-            // FFA 重生点
-            if (_supportFFA)
-            {
-                GameObject ffaSpawns = CreateChild(gameplay, "FFA_respawn_points");
-                for (int i = 0; i < _ffaSpawnCount; i++)
+                var game = Node(root.transform, info.gameplayRoot, Vector3.zero);
+                if (info.SupportsMode(GameModeIds.Demolition) || info.SupportsMode(GameModeIds.TeamDeathmatch))
                 {
-                    float angle = (360f / _ffaSpawnCount) * i * Mathf.Deg2Rad;
-                    GameObject spawn = CreateChild(ffaSpawns, $"Spawn_FFA_{(i + 1):D2}");
-                    spawn.transform.localPosition = new Vector3(Mathf.Cos(angle) * 10f, 0, Mathf.Sin(angle) * 10f);
-                    var marker = spawn.AddComponent<SpawnPointMarker>();
-                    SerializedObject so = new SerializedObject(marker);
-                    so.FindProperty("team").enumValueIndex = 2; // FFA
-                    so.ApplyModifiedPropertiesWithoutUndo();
+                    Spawns(game, info.teamASpawnRoot, SpawnPointMarker.SpawnTeam.CT, -10);
+                    Spawns(game, info.teamBSpawnRoot, SpawnPointMarker.SpawnTeam.T, 10);
+                    var barriers = Node(game, info.barrierRoot, Vector3.zero);
+                    foreach (float x in new[] { -6f, 6f })
+                    {
+                        var wall = Node(barriers, "Barrier_" + x, new Vector3(x, 2, 0));
+                        wall.gameObject.AddComponent<BarrierGroupMarker>();
+                        wall.GetComponent<BoxCollider>().size = new Vector3(.3f, 4, 12);
+                    }
+                    var shop = Node(game, info.weaponShopRoot, Vector3.zero);
+                    Node(shop, info.weaponShopTeamAChild, new Vector3(-11, 0, 4)).gameObject.AddComponent<WeaponShopMarker>();
+                    Node(shop, info.weaponShopTeamBChild, new Vector3(11, 0, 4)).gameObject.AddComponent<WeaponShopMarker>();
                 }
+                if (info.SupportsMode(GameModeIds.FreeForAll)) Spawns(game, info.freeForAllSpawnRoot, SpawnPointMarker.SpawnTeam.FFA, 0);
+                if (info.SupportsMode(GameModeIds.Demolition))
+                {
+                    var sites = Node(game, info.bombsiteRoot, Vector3.zero);
+                    for (int i = 0; i < info.bombsiteNames.Length; i++)
+                    {
+                        var site = Node(sites, info.bombsiteNames[i], new Vector3(i * 10 - 5, 1, 10));
+                        site.gameObject.AddComponent<BombsiteMarker>();
+                        var box = site.GetComponent<BoxCollider>(); box.size = new Vector3(5, 2, 5); box.isTrigger = true;
+                    }
+                }
+                string prefabPath = AssetDatabase.GenerateUniqueAssetPath(folder + "/" + info.mapId + ".prefab");
+                var definition = CreateInstance<PvPMapDefinition>();
+                definition.info = info; definition.prefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                AssetDatabase.CreateAsset(definition, AssetDatabase.GenerateUniqueAssetPath(folder + "/" + info.mapId + "_Definition.asset"));
+                AssetDatabase.SaveAssets(); return definition;
             }
-
-            // 空气墙组
-            GameObject barriers = CreateChild(gameplay, "回合开始空气墙组");
-            for (int i = 0; i < 3; i++)
-            {
-                GameObject barrier = CreateChild(barriers, $"Barrier_{(i + 1):D2}");
-                barrier.transform.localPosition = new Vector3(i * 4f, 1f, 10f);
-                barrier.AddComponent<BarrierGroupMarker>();
-            }
-
-            // 武器墙
-            GameObject weaponShops = CreateChild(gameplay, "武器墙位置");
-            GameObject ctShop = CreateChild(weaponShops, "警");
-            ctShop.transform.localPosition = new Vector3(-5f, 1f, 2f);
-            var ctShopMarker = ctShop.AddComponent<WeaponShopMarker>();
-            SerializedObject ctSo = new SerializedObject(ctShopMarker);
-            ctSo.FindProperty("team").enumValueIndex = 0; // CT
-            ctSo.ApplyModifiedPropertiesWithoutUndo();
-
-            GameObject tShop = CreateChild(weaponShops, "匪");
-            tShop.transform.localPosition = new Vector3(-5f, 1f, 18f);
-            var tShopMarker = tShop.AddComponent<WeaponShopMarker>();
-            SerializedObject tSo = new SerializedObject(tShopMarker);
-            tSo.FindProperty("team").enumValueIndex = 1; // T
-            tSo.ApplyModifiedPropertiesWithoutUndo();
-
-            // 包点（爆破模式）
-            if (_supportDemolition)
-            {
-                GameObject bombsites = CreateChild(gameplay, "包点");
-
-                GameObject siteA = CreateChild(bombsites, "A");
-                siteA.transform.localPosition = new Vector3(10f, 0, 5f);
-                siteA.AddComponent<BombsiteMarker>();
-                var colA = siteA.GetComponent<BoxCollider>();
-                colA.size = new Vector3(4f, 2f, 4f);
-                colA.isTrigger = true;
-
-                GameObject siteB = CreateChild(bombsites, "B");
-                siteB.transform.localPosition = new Vector3(-10f, 0, 5f);
-                siteB.AddComponent<BombsiteMarker>();
-                var colB = siteB.GetComponent<BoxCollider>();
-                colB.size = new Vector3(4f, 2f, 4f);
-                colB.isTrigger = true;
-            }
-
-            // MapInfo TextAsset
-            MapInfo info = new MapInfo
-            {
-                mapId = _mapId,
-                displayName = _displayName,
-                author = _author,
-                description = _description,
-                supportedModes = BuildSupportedModes(),
-                bombsiteNames = _supportDemolition ? new[] { "A", "B" } : new string[0]
-            };
-
-            string json = JsonUtility.ToJson(info, true);
-            string assetPath = $"Assets/{_mapId}_MapInfo.asset";
-            TextAsset textAsset = new TextAsset(json);
-            AssetDatabase.CreateAsset(textAsset, assetPath);
-            AssetDatabase.SaveAssets();
-
-            Debug.Log($"[PvP MapSDK] 地图模版 '{_displayName}' 已创建！\n" +
-                     $"MapInfo 保存于: {assetPath}\n" +
-                     $"请将场景模型添加到 MapRoot_{_mapId} 节点下。");
-
-            Selection.activeGameObject = mapRoot;
-            EditorGUIUtility.PingObject(mapRoot);
+            finally { DestroyImmediate(root); }
         }
-
-        private string[] BuildSupportedModes()
+        private static Transform Node(Transform parent, string name, Vector3 position)
         {
-            var modes = new System.Collections.Generic.List<string>();
-            if (_supportDemolition) modes.Add("demolition");
-            if (_supportTDM) modes.Add("team_deathmatch");
-            if (_supportFFA) modes.Add("free_for_all");
-            return modes.ToArray();
+            var t = new GameObject(name).transform; t.SetParent(parent, false); t.localPosition = position; return t;
         }
-
-        private static GameObject CreateChild(GameObject parent, string name)
+        private static void Spawns(Transform parent, string name, SpawnPointMarker.SpawnTeam team, float x)
         {
-            GameObject child = new GameObject(name);
-            child.transform.SetParent(parent.transform, false);
-            return child;
+            var group = Node(parent, name, Vector3.zero);
+            for (int i = 0; i < 8; i++)
+            {
+                var point = Node(group, "Spawn_" + (i + 1), new Vector3(x + (i % 2) * 2, 0, (i / 2) * 2 - 3));
+                point.gameObject.AddComponent<SpawnPointMarker>().team = team;
+            }
         }
     }
 }
-#endif

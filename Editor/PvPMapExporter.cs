@@ -82,7 +82,7 @@ namespace PvPShotMode.MapSDK.Editor
 
         private static void RemoveTestPlayers(GameObject root)
         {
-            foreach (var controller in root.GetComponentsInChildren<global::PvPShotMode.MapSDK.SimpleFPSController>(true))
+            foreach (var controller in root.GetComponentsInChildren<global::SimpleFPSController>(true))
             {
                 if (controller.gameObject == root)
                     throw new InvalidOperationException("SimpleFPSController 不能挂在地图根对象；请放在独立测试 player 上。");

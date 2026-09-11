@@ -1,7 +1,9 @@
 {
     "name": "PvPShotMode.MapSDK.Runtime",
     "rootNamespace": "PvPShotMode.MapSDK",
-    "references": [],
+    "references": [
+        "Unity.InputSystem"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

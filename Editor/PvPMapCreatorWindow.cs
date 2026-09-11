@@ -44,6 +44,7 @@ namespace PvPShotMode.MapSDK.Editor
             try
             {
                 var game = Node(root.transform, info.gameplayRoot, Vector3.zero);
+                CreateTestPlayer(root.transform);
                 if (info.SupportsMode(GameModeIds.Demolition) || info.SupportsMode(GameModeIds.TeamDeathmatch))
                 {
                     Spawns(game, info.teamASpawnRoot, SpawnPointMarker.SpawnTeam.CT, -10);
@@ -95,6 +96,29 @@ namespace PvPShotMode.MapSDK.Editor
         private static Transform Node(Transform parent, string name, Vector3 position)
         {
             var t = new GameObject(name).transform; t.SetParent(parent, false); t.localPosition = position; return t;
+        }
+        private static void CreateTestPlayer(Transform parent)
+        {
+            var player = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            player.name = "player";
+            player.transform.SetParent(parent, false);
+            player.transform.localPosition = new Vector3(0, 1, 0);
+            player.transform.localRotation = Quaternion.identity;
+            player.transform.localScale = Vector3.one;
+
+            var body = player.AddComponent<Rigidbody>();
+            body.mass = 80f;
+            body.constraints = RigidbodyConstraints.FreezeRotation;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+
+            var cameraObject = new GameObject("PlayerCamera");
+            cameraObject.transform.SetParent(player.transform, false);
+            cameraObject.transform.localPosition = new Vector3(0, .65f, 0);
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.nearClipPlane = .05f;
+            camera.fieldOfView = 70f;
+            player.AddComponent<SimpleFPSController>().viewCamera = camera;
         }
         private static void Spawns(Transform parent, string name, SpawnPointMarker.SpawnTeam team, float x, int count = 8)
         {

@@ -14,7 +14,7 @@ namespace PvPShotMode.MapSDK.Editor
         private void OnGUI()
         {
             definition = (PvPMapDefinition)EditorGUILayout.ObjectField("地图定义", definition, typeof(PvPMapDefinition), false);
-            EditorGUILayout.HelpBox("编辑地图定义里的名称、简介、支持模式和规则。保存 Prefab 后导出。所有编辑器标记会被移除，原始 Prefab 保持可编辑。目标平台 Windows 64 位，Unity 版本请与游戏一致。", MessageType.Info);
+            EditorGUILayout.HelpBox("编辑地图定义里的名称、简介、支持模式和规则。保存 Prefab 后导出。所有编辑器标记及 SimpleFPSController 测试 player 会被移除，原始 Prefab 保持可编辑。目标平台 Windows 64 位，Unity 版本请与游戏一致。", MessageType.Info);
             using (new EditorGUI.DisabledScope(definition == null))
             if (GUILayout.Button("校验并导出 .map"))
             {
@@ -40,6 +40,7 @@ namespace PvPShotMode.MapSDK.Editor
             {
                 Directory.CreateDirectory(temp); Directory.CreateDirectory(staging);
                 clone = Instantiate(definition.prefab); clone.name = definition.prefab.name;
+                RemoveTestPlayers(clone);
                 foreach (var marker in clone.GetComponentsInChildren<PvPMapMarker>(true)) DestroyImmediate(marker);
                 ValidateRuntimeComponents(clone);
                 info.prefabAssetName = "MapPrefab";
@@ -76,6 +77,16 @@ namespace PvPShotMode.MapSDK.Editor
                 if (clone != null) DestroyImmediate(clone);
                 AssetDatabase.DeleteAsset(temp);
                 if (Directory.Exists(staging)) Directory.Delete(staging, true);
+            }
+        }
+
+        private static void RemoveTestPlayers(GameObject root)
+        {
+            foreach (var controller in root.GetComponentsInChildren<SimpleFPSController>(true))
+            {
+                if (controller.gameObject == root)
+                    throw new InvalidOperationException("SimpleFPSController 不能挂在地图根对象；请放在独立测试 player 上。");
+                DestroyImmediate(controller.gameObject);
             }
         }
 

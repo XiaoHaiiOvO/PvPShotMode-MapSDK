@@ -1,6 +1,6 @@
 # PvPShotMode Map SDK
 
-《How to Fish》PvPShotMode 的 Unity 地图制作工具，版本 **2.3.0**。
+《How to Fish》PvPShotMode 的 Unity 地图制作工具，版本 **2.4.0**。
 
 本仓库只包含地图数据规范、编辑器模板、Gizmos 和导出工具，按 MIT 协议开源。玩法 DLL、游戏源码、模型、音效和第三方资源不在本仓库中。
 
@@ -36,13 +36,13 @@
 3. 输入：
 
 ```text
-https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.3.0
+https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.4.0
 ```
 
 也可以在工程的 `Packages/manifest.json` 中添加：
 
 ```json
-"com.htf.pvpshotmode-mapsdk": "https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.3.0"
+"com.htf.pvpshotmode-mapsdk": "https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.4.0"
 ```
 
 本机需要安装 Git；制作地图不需要 GitHub 账号，也不需要导入玩法 DLL。
@@ -57,6 +57,16 @@ https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.3.0
 6. 菜单 `PvPShotMode → 导出地图 (.map)`，选择地图定义，点击“校验并导出”。
 7. 把生成的 `地图ID.map` 放在游戏的 `BepInEx/plugins` 下任意子目录，重启游戏。所有玩家安装**完全相同**的文件。
 8. 房主按 **P**，选择地图和模式，前往传送岛。团队模式进入双方传送门选队；个人死斗进入任一传送门确认参赛，至少两人。全部确认并加载完成后开始倒计时。
+
+## 编辑器跑图测试 player
+
+新模板会在地图根下创建 `player`：Unity 原生 1:1:1 胶囊体、`CapsuleCollider`、质量 80 的 `Rigidbody`、第一人称相机和 `SimpleFPSController`。其体积接近游戏玩家，可在 Play Mode 中检查地图比例、通道宽度、台阶、场景碰撞体和边界阻挡。
+
+- `W/A/S/D` 移动，`Shift` 加速，`Space` 跳跃，鼠标观察。
+- `Esc` 释放或重新锁定鼠标。
+- 将 `player` 移到待测试位置后进入 Play Mode；如果场景另有相机，请先禁用它。
+- 可以移动或重命名该对象；导出器通过 `SimpleFPSController` 组件识别并删除整个测试对象。
+- `.map` 只清理导出克隆，原始 Prefab 中的 `player` 会保留，便于继续测试。
 
 ## 编辑器标记图例
 
@@ -132,6 +142,7 @@ SDK 与玩法代码共用 [WeaponShopLayout.cs](Runtime/WeaponShopLayout.cs)。�
 - 导出前和 AB 回读使用相同的组件校验；禁用对象或禁用脚本不会绕过检查。当前白名单仅额外支持上述灯光数据，不代表自定义脚本、NavMeshSurface 或所有 URP 组件均已支持。
 - Area 灯在当前 URP 中仅支持烘焙；需要随预制体工作的实时补光时使用 Point/Spot。当前 `.map` 导出器不负责场景 Lightmap 的导出与运行时绑定。
 - 旧版 SDK 将多个组件放在同一个文件，可能留下 Missing Script。新版每个组件独立成文件。旧 Prefab 请重新挂载相应标记、检查碰撞体后再导出。
+- 新模板中的 `SimpleFPSController` 测试 `player` 会在导出克隆中连同相机、Rigidbody、碰撞体和模型一起删除，不进入 `.map`。
 - 导出不修改原始 Prefab 和 AssetImporter 的 Bundle 名称；生成后回读 AB，验证固定地址、JSON、必需对象及组件白名单。
 - P 菜单没有地图时，查看 BepInEx 日志中的 `[PvP][Maps]`，检查重复 ID、缺少出生点、Unity 版本和 JSON。
 - `previewImageName` 为保留字段，当前菜单显示文字信息。

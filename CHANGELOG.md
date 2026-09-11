@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.0
+
+- Create a 1:1:1 capsule named `player` with Rigidbody, camera and SimpleFPSController in every new map template.
+- Provide Input System WASD/mouse/sprint/jump controls for Play Mode scale, boundary and collision testing.
+- Remove every SimpleFPSController test object from the export clone before component validation and AssetBundle creation.
+
 ## 2.3.0
 
 - Add infection mode metadata, 16 Human / 10 Zombie / 5 airdrop template markers and a single Human weapon wall.

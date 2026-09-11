@@ -1,8 +1,8 @@
 {
   "name": "com.htf.pvpshotmode-mapsdk",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "displayName": "PvPShotMode Map SDK",
-  "description": "Unity Editor tools for creating custom PvP maps for the PvP Shot Mode mod (How to Fish). Includes one-click map template generation, marker Gizmo visualization, structure validation, and one-click .map AssetBundle export.",
+  "description": "Unity Editor tools for creating custom PvP maps for the PvP Shot Mode mod (How to Fish). Includes one-click map templates, Play Mode FPS collision testing, marker Gizmos, structure validation, and one-click .map AssetBundle export.",
   "unity": "6000.4",
   "keywords": [
     "pvp",
@@ -11,6 +11,9 @@
     "shooting",
     "howtofish"
   ],
+  "dependencies": {
+    "com.unity.inputsystem": "1.19.0"
+  },
   "author": {
     "name": "PvPShotMode Team"
   }

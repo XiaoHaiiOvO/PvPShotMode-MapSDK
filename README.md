@@ -1,8 +1,31 @@
 # PvPShotMode Map SDK
 
-《How to Fish》PvPShotMode 的 Unity 地图制作工具，版本 **2.2.1**。
+《How to Fish》PvPShotMode 的 Unity 地图制作工具，版本 **2.3.0**。
 
 本仓库只包含地图数据规范、编辑器模板、Gizmos 和导出工具，按 MIT 协议开源。玩法 DLL、游戏源码、模型、音效和第三方资源不在本仓库中。
+
+## 2.3.0 生化模式与武器墙预览
+
+新增 `infection`，对应 PvPShotMode 2.3.0 或更新兼容版本。此版本同时包含 2.2.1 的固定武器墙布局预览，以及 2.2.2 的 URP 灯光组件兼容修复。
+
+```text
+地图根
+├─ Map
+└─ GamePlay
+   ├─ Human_respawn_points   # 5～16，模板默认16
+   ├─ Zombie_respawn_points  # 1～15，模板默认10
+   ├─ Airdrop_points         # 1～10，模板默认5
+   └─ 武器墙位置
+      └─ 人类               # 唯一武器墙，本地+Z正面
+```
+
+创建模板时勾选生化模式。该模式不要求 CT/T 出生点、包点或空气墙；混合模式地图仍需满足其余所选模式的要求。新增 MapInfo 字段 `humanSpawnRoot`、`zombieSpawnRoot`、`airdropRoot`、`humanWeaponShopChild` 均相对 GamePlay（武器墙子名相对武器墙根）。
+
+出生标记放在脚底地面附近；运行时校验地面与胶囊空间，并在作者点位附近为最多32人补位，无法安全分配则拒绝开战。点位数不是最大玩家数。
+
+空投点需要约2.6米宽的下降通道，降落伞最高约3.2米；房主会检查屋顶并缩短下降高度，少于2米或通道占用则跳过。Gizmos 仅为设计提示，发布前须检查地图实际碰撞。
+
+生化 `人类` 武器墙预览7种普通武器及配件，不含投掷物。共享丧尸、音频、防护服等放在插件的 `infection_assets`，不重复塞入每张地图。
 
 ## 导入 Unity
 
@@ -13,13 +36,13 @@
 3. 输入：
 
 ```text
-https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.2.1
+https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.3.0
 ```
 
 也可以在工程的 `Packages/manifest.json` 中添加：
 
 ```json
-"com.htf.pvpshotmode-mapsdk": "https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.2.1"
+"com.htf.pvpshotmode-mapsdk": "https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.3.0"
 ```
 
 本机需要安装 Git；制作地图不需要 GitHub 账号，也不需要导入玩法 DLL。
@@ -44,6 +67,9 @@ Scene 视图请开启 Gizmos。出生点使用半透明球体，武器墙使用�
 | 蓝球 | CT 出生点 | 玩家出生位置 |
 | 红球 | T 出生点 | 玩家出生位置 |
 | 紫球 | 个人死斗出生点 | 开局分配；死亡后优先选择远离其他存活玩家的位置 |
+| 青球/胶囊框 | 生化人类出生点 | 开局人类出生位置；可在附近安全补位 |
+| 绿球/胶囊框 | 生化丧尸出生点 | 感染和复活位置；可在附近安全补位 |
+| 黄色线框柱 | 生化空投点 | 标示降落伞尺寸与约 15 米下降通道 |
 | 黄色半透明方框 | 爆破包点 | 保留触发碰撞体，区域内可安放 C4 |
 | 青色半透明方框 | 准备期空气墙 | 保留实体 BoxCollider，准备结束后关闭 |
 | 绿色/青色槽位阵列 | 武器墙锚点 | 绿色武器/投掷物板、青色配件板；本地 +Z 为展示正面 |
@@ -77,6 +103,7 @@ SDK 与玩法代码共用 [WeaponShopLayout.cs](Runtime/WeaponShopLayout.cs)。�
 | `demolition` | 安放 / 拆除 C4；全灭与未安放超时按爆破规则判定；先到房主设定分数获胜 | CT/T 出生点、空气墙组、两侧武器墙、至少一个包点 |
 | `team_deathmatch` | 单局按房主设置的时间或团队击杀目标决胜；限时平分进入双方随机一人单挑；死亡后按配置重生 | CT/T 出生点、空气墙组、两侧武器墙 |
 | `free_for_all` | 每人互为敌人；击杀数先达到目标获胜；死亡后自动重生 | FFA 出生点 |
+| `infection` | 开局随机母体感染其他玩家；人类坚持到时限或消灭母体获胜，丧尸感染全部人类获胜 | 5～16 个人类点、1～15 个丧尸点、1～10 个空投点、一个人类武器墙 |
 
 个人死斗参数：`targetKills` 默认 30，`respawnSeconds` 默认 3，`spawnProtectionSeconds` 默认 2，`freeForAllWeaponId` 默认 66。保护期间不能造成或受到玩家伤害。武器 ID 必须是当前游戏可生成的枪械。
 
@@ -101,9 +128,11 @@ SDK 与玩法代码共用 [WeaponShopLayout.cs](Runtime/WeaponShopLayout.cs)。�
 
 - 使用游戏兼容的 Unity 版本和 Windows 64 位平台。修改扩展名不能把普通文件变成 AB。
 - 模型必须有可行走的碰撞体；空模板不能直接当作可玩地图。
-- 导出会拒绝丢失脚本及非 SDK 的 MonoBehaviour。将自定义脚本移除或烘焙为原生组件；玩法逻辑由 DLL 提供。
+- 导出会拒绝丢失脚本和未列入兼容白名单的 MonoBehaviour，并列出对象路径。SDK 标记会从导出克隆移除；已验证游戏提供的 `Unity.RenderPipelines.Universal.Runtime` 程序集中的 `UniversalAdditionalLightData` 会保留（必须与 Light 位于同一对象）。不会按 UnityEngine 命名空间或整个程序集一律放行。
+- 导出前和 AB 回读使用相同的组件校验；禁用对象或禁用脚本不会绕过检查。当前白名单仅额外支持上述灯光数据，不代表自定义脚本、NavMeshSurface 或所有 URP 组件均已支持。
+- Area 灯在当前 URP 中仅支持烘焙；需要随预制体工作的实时补光时使用 Point/Spot。当前 `.map` 导出器不负责场景 Lightmap 的导出与运行时绑定。
 - 旧版 SDK 将多个组件放在同一个文件，可能留下 Missing Script。新版每个组件独立成文件。旧 Prefab 请重新挂载相应标记、检查碰撞体后再导出。
-- 导出不修改原始 Prefab 和 AssetImporter 的 Bundle 名称；生成后回读 AB，验证固定地址、JSON、必需对象和无残留脚本。
+- 导出不修改原始 Prefab 和 AssetImporter 的 Bundle 名称；生成后回读 AB，验证固定地址、JSON、必需对象及组件白名单。
 - P 菜单没有地图时，查看 BepInEx 日志中的 `[PvP][Maps]`，检查重复 ID、缺少出生点、Unity 版本和 JSON。
 - `previewImageName` 为保留字段，当前菜单显示文字信息。
 

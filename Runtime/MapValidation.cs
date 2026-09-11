@@ -25,9 +25,17 @@ namespace HowToFish.PvPShotMode.Map
             if (root == null) { errors.Add("缺少 " + info.gameplayRoot); return errors; }
             bool teams = selectedMode == null
                 ? info.SupportsMode(GameModeIds.Demolition) || info.SupportsMode(GameModeIds.TeamDeathmatch)
-                : selectedMode != GameModeIds.FreeForAll;
+                : selectedMode == GameModeIds.Demolition || selectedMode == GameModeIds.TeamDeathmatch;
             bool bomb = selectedMode == GameModeIds.Demolition || selectedMode == null && info.SupportsMode(GameModeIds.Demolition);
             bool ffa = selectedMode == GameModeIds.FreeForAll || selectedMode == null && info.SupportsMode(GameModeIds.FreeForAll);
+            bool infection = selectedMode == GameModeIds.Infection || selectedMode == null && info.SupportsMode(GameModeIds.Infection);
+            if (infection)
+            {
+                RequireCount(root, info.humanSpawnRoot, 5, 16, errors);
+                RequireCount(root, info.zombieSpawnRoot, 1, 15, errors);
+                RequireCount(root, info.airdropRoot, 1, 10, errors);
+                Require(root, info.weaponShopRoot + "/" + info.humanWeaponShopChild, errors);
+            }
             if (teams)
             {
                 RequireSpawns(root, info.teamASpawnRoot, errors);
@@ -58,6 +66,12 @@ namespace HowToFish.PvPShotMode.Map
             return errors;
         }
         private static bool Finite(float f) => !float.IsNaN(f) && !float.IsInfinity(f);
+        private static void RequireCount(Transform root, string path, int min, int max, List<string> errors)
+        {
+            var group = string.IsNullOrEmpty(path) ? null : root.Find(path);
+            if (group == null || group.childCount < min || group.childCount > max)
+                errors.Add("GamePlay/" + path + " 必须有 " + min + "～" + max + " 个直接子点位");
+        }
         private static void Require(Transform root, string path, List<string> errors)
         { if (string.IsNullOrEmpty(path) || root.Find(path) == null) errors.Add("缺少 GamePlay/" + path); }
         private static void RequireSpawns(Transform root, string path, List<string> errors)

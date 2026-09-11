@@ -5,5 +5,6 @@ namespace HowToFish.PvPShotMode.Map
         public const string Demolition = "demolition";
         public const string TeamDeathmatch = "team_deathmatch";
         public const string FreeForAll = "free_for_all";
+        public const string Infection = "infection";
     }
 }

@@ -40,13 +40,8 @@ namespace PvPShotMode.MapSDK.Editor
             {
                 Directory.CreateDirectory(temp); Directory.CreateDirectory(staging);
                 clone = Instantiate(definition.prefab); clone.name = definition.prefab.name;
-                // Missing scripts are rejected: silently removing them could delete gameplay or collision setup.
-                foreach (var t in clone.GetComponentsInChildren<Transform>(true))
-                    if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject) > 0)
-                        throw new InvalidOperationException("存在丢失脚本：" + t.name + "。请修复后导出。");
                 foreach (var marker in clone.GetComponentsInChildren<PvPMapMarker>(true)) DestroyImmediate(marker);
-                foreach (var mb in clone.GetComponentsInChildren<MonoBehaviour>(true))
-                    throw new InvalidOperationException("地图包含游戏未提供的脚本：" + mb.GetType().FullName + "。请使用原生组件或烘焙为静态资源。");
+                ValidateRuntimeComponents(clone);
                 info.prefabAssetName = "MapPrefab";
                 string prefabPath = temp + "/MapPrefab.prefab", jsonPath = temp + "/MapInfo.json";
                 PrefabUtility.SaveAsPrefabAsset(clone, prefabPath);
@@ -67,7 +62,7 @@ namespace PvPShotMode.MapSDK.Editor
                     if (loadedInfo == null || loadedPrefab == null) throw new InvalidOperationException("地图缺少固定地址 MapInfo/MapPrefab");
                     var roundTripErrors = MapValidation.Validate(loadedPrefab, MapInfo.CreateFromJson(loadedInfo.text));
                     if (roundTripErrors.Count > 0) throw new InvalidOperationException(string.Join("\n", roundTripErrors));
-                    if (loadedPrefab.GetComponentsInChildren<MonoBehaviour>(true).Length != 0) throw new InvalidOperationException("导出资源残留脚本");
+                    ValidateRuntimeComponents(loadedPrefab);
                 }
                 finally { bundle.Unload(true); }
                 Directory.CreateDirectory(outputDirectory);
@@ -82,6 +77,31 @@ namespace PvPShotMode.MapSDK.Editor
                 AssetDatabase.DeleteAsset(temp);
                 if (Directory.Exists(staging)) Directory.Delete(staging, true);
             }
+        }
+
+        // Verified against the installed How to Fish Unity 6000.4.4f1 assemblies.
+        // Do not allow arbitrary UnityEngine namespaces or every component from a package.
+        private static void ValidateRuntimeComponents(GameObject root)
+        {
+            var errors = new System.Collections.Generic.List<string>();
+            foreach (var node in root.GetComponentsInChildren<Transform>(true))
+            {
+                string path = root.name + "/" + AnimationUtility.CalculateTransformPath(node, root.transform);
+                if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(node.gameObject) > 0)
+                    errors.Add(path + "：存在丢失脚本，请修复引用。");
+                foreach (var component in node.GetComponents<MonoBehaviour>())
+                {
+                    if (component == null) continue; // Already reported above, never silently accepted.
+                    Type type = component.GetType();
+                    bool urpLight = type.FullName == "UnityEngine.Rendering.Universal.UniversalAdditionalLightData" &&
+                        type.Assembly.GetName().Name == "Unity.RenderPipelines.Universal.Runtime" &&
+                        component.GetComponent<Light>() != null;
+                    if (!urpLight)
+                        errors.Add(path + "：" + type.FullName + " [" + type.Assembly.GetName().Name + "] 未列入兼容白名单。");
+                }
+            }
+            if (errors.Count != 0)
+                throw new InvalidOperationException("地图组件校验失败（包含未激活对象）：\n" + string.Join("\n", errors));
         }
     }
 }

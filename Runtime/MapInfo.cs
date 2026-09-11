@@ -19,6 +19,10 @@ namespace HowToFish.PvPShotMode.Map
         public string teamASpawnRoot = "TeamCT_respawn_points";
         public string teamBSpawnRoot = "TeamT_respawn_points";
         public string freeForAllSpawnRoot = "FFA_respawn_points";
+        public string humanSpawnRoot = "Human_respawn_points";
+        public string zombieSpawnRoot = "Zombie_respawn_points";
+        public string airdropRoot = "Airdrop_points";
+        public string humanWeaponShopChild = "人类";
         public string bombsiteRoot = "包点";
         public string[] bombsiteNames = { "A", "B" };
         public string barrierRoot = "回合开始空气墙组";
@@ -51,6 +55,10 @@ namespace HowToFish.PvPShotMode.Map
             if (string.IsNullOrEmpty(teamASpawnRoot)) teamASpawnRoot = "TeamCT_respawn_points";
             if (string.IsNullOrEmpty(teamBSpawnRoot)) teamBSpawnRoot = "TeamT_respawn_points";
             if (string.IsNullOrEmpty(freeForAllSpawnRoot)) freeForAllSpawnRoot = "FFA_respawn_points";
+            if (string.IsNullOrEmpty(humanSpawnRoot)) humanSpawnRoot = "Human_respawn_points";
+            if (string.IsNullOrEmpty(zombieSpawnRoot)) zombieSpawnRoot = "Zombie_respawn_points";
+            if (string.IsNullOrEmpty(airdropRoot)) airdropRoot = "Airdrop_points";
+            if (string.IsNullOrEmpty(humanWeaponShopChild)) humanWeaponShopChild = "人类";
             if (string.IsNullOrEmpty(barrierRoot)) barrierRoot = "回合开始空气墙组";
             if (string.IsNullOrEmpty(weaponShopRoot)) weaponShopRoot = "武器墙位置";
             if (string.IsNullOrEmpty(weaponShopTeamAChild)) weaponShopTeamAChild = "警";

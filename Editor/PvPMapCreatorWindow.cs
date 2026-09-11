@@ -118,7 +118,8 @@ namespace PvPShotMode.MapSDK.Editor
             var camera = cameraObject.AddComponent<Camera>();
             camera.nearClipPlane = .05f;
             camera.fieldOfView = 70f;
-            player.AddComponent<SimpleFPSController>().viewCamera = camera;
+            var controller = player.AddComponent<global::PvPShotMode.MapSDK.SimpleFPSController>();
+            controller.viewCamera = camera;
         }
         private static void Spawns(Transform parent, string name, SpawnPointMarker.SpawnTeam team, float x, int count = 8)
         {

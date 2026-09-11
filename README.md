@@ -1,6 +1,6 @@
 # PvPShotMode Map SDK
 
-《How to Fish》PvPShotMode 的 Unity 地图制作工具，版本 **2.4.0**。
+《How to Fish》PvPShotMode 的 Unity 地图制作工具，版本 **2.4.1**。
 
 本仓库只包含地图数据规范、编辑器模板、Gizmos 和导出工具，按 MIT 协议开源。玩法 DLL、游戏源码、模型、音效和第三方资源不在本仓库中。
 
@@ -36,13 +36,13 @@
 3. 输入：
 
 ```text
-https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.4.0
+https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.4.1
 ```
 
 也可以在工程的 `Packages/manifest.json` 中添加：
 
 ```json
-"com.htf.pvpshotmode-mapsdk": "https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.4.0"
+"com.htf.pvpshotmode-mapsdk": "https://github.com/XiaoHaiiOvO/PvPShotMode-MapSDK.git#v2.4.1"
 ```
 
 本机需要安装 Git；制作地图不需要 GitHub 账号，也不需要导入玩法 DLL。

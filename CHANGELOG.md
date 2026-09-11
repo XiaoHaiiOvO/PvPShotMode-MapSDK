@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.1
+
+- Resolve the editor template controller through the SDK runtime namespace explicitly, so projects containing another `SimpleFPSController` cannot bind the old component by name.
+- Keep export cleanup bound to the same new SDK controller type.
+
 ## 2.4.0
 
 - Create a 1:1:1 capsule named `player` with Rigidbody, camera and SimpleFPSController in every new map template.
